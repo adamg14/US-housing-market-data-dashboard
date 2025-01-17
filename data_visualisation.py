@@ -42,7 +42,8 @@ print(sale_count_data.head())
 
 def date_filter(data_frame, date_range):
     date_range = sorted(date_range)
-    return data_frame[(data_frame["Date"] >= date_range[0] & data_frame["Date"] <= date_range[1])]
+    dates = pd.to_datetime(data_frame["Date"], format="%Y-%m-%d").dt.date
+    return data_frame[(dates >= date_range[0]) & (dates <= date_range[1])]
 
 def string_to_date(date_string):
     return datetime.strptime(date_string,"%Y-%m-%d").date()
