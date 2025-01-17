@@ -5,6 +5,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+from faicons import icon_svg
 
 # Read CSVs for display in the data frames
 string_sale_price_df = pd.read_csv("./Metro_invt_fs_uc_sfrcondo_sm_month.csv")
@@ -12,26 +13,80 @@ string_house_price_df = pd.read_csv("./Metro_zhvi_uc_sfrcondo_tier_0.33_0.67_sm_
 string_state_count_df = pd.read_csv("./Metro_sales_count_now_uc_sfrcondo_month.csv")
 
 # Define the user interface
-app_ui = ui.page_fluid(
-    ui.h1("United States of America Housing Market Analysis", style="text-align: center;"),
-    ui.input_select(
-        id="us_state", 
-        label="Filter By State", 
-        choices=US_STATES
+app_ui = ui.page_sidebar(
+    ui.sidebar(
+        ui.input_select(
+            id="us_state", 
+            label="Filter By State", 
+                choices=US_STATES,
+                selected="United States"  # Optional: set default selection
+            ),
+        ui.input_slider(
+            id="date_range", 
+            label="Filter By Date Range",
+            min=string_to_date("2000-01-31"),
+            max=string_to_date("2024-12-31"),
+            value=[string_to_date("2000-01-01"), string_to_date("2024-12-31")],
+            step=30  # Optional: define step size (in days)
+        ),
     ),
-    ui.input_slider(
-        id="date_range", 
-        label="Filter By Date Range",
-        min=string_to_date("2000-01-31"),
-        max=string_to_date("2024-12-31"),
-        value=[string_to_date("2000-01-01"), string_to_date("2024-12-31")]
+    ui.page_fluid(
+        ui.h1("United States of America Housing Market Analysis", style="text-align: center;"),
+    
+    ui.h2("List House Price Data by State (Monthly Price)", style="text-align: center;"),
+    
+    ui.navset_card_tab(
+        ui.nav_panel("Graph",
+                    ui.output_plot("list_price"),
+                    icon=icon_svg("chart-line"),
+                    title="Mean Monthly Price"
+                    ),
+        
+        ui.nav_panel("Table",
+                    ui.output_data_frame("table"),
+                    icon=icon_svg("table")
+                    ),
     ),
-    ui.output_plot("list_price"),
-    ui.output_data_frame("table"),
-    ui.output_plot("house_price"),
-    ui.output_data_frame("house_price_data_frame"),
-    ui.output_plot("sale_count"),
-    ui.output_data_frame("sale_count_data_frame")
+    
+    ui.h2("House Price Data by State", style="text-align: center;"),
+    
+    ui.navset_card_tab(
+        ui.nav_panel("Graph",
+                     ui.output_plot("house_price"),
+                     icon=icon_svg("chart-line"),
+                     title="Mean Number of Sales"
+                     ),
+        
+        ui.nav_panel("Table",
+                     ui.output_data_frame("house_price_data_frame"),
+                     icon=icon_svg("table")
+                     )
+    ),   
+    
+    ui.h2("House Sales Data by State", style="text-align: center;"),
+    
+    ui.navset_card_tab(
+        ui.nav_panel("Graph",
+                     ui.output_plot("sale_count"),
+                     icon=icon_svg("chart-line"),
+                     title="Mean Value"
+                     ),
+        
+        ui.nav_panel("Table",
+                     ui.output_data_frame("sale_count_data_frame"),
+                     icon=icon_svg("table")
+                     ),
+    ),
+    
+    # a column wrap of 3 cards
+    # current value of house
+    # percentage change over the last year
+    # number of sales in the last year
+    # ui.layout_column_wrap(
+    #     ui.value_box(),
+    #     ...
+    # )
+    # )
 )
 
 # Define the server logic
@@ -163,13 +218,8 @@ def server(input, output, session):
         # Show entire US or filtered by state
         if input.us_state() == "United States":
             df = string_state_count_df
-            df = date_filter(df, input.date_range())
         else:
             df = string_state_count_df[string_state_count_df["StateName"] == input.us_state()]
-            
-            
-        # filter by date user input
-        df = date_filter(df, input.date_range())
         
         return df
 
