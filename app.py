@@ -30,6 +30,7 @@ app_ui = ui.page_sidebar(
             step=30  # Optional: define step size (in days)
         ),
     ),
+    
     ui.page_fluid(
         ui.h1("United States of America Housing Market Analysis", style="text-align: center;"),
     
@@ -39,13 +40,13 @@ app_ui = ui.page_sidebar(
         ui.nav_panel("Graph",
                     ui.output_plot("list_price"),
                     icon=icon_svg("chart-line"),
-                    title="Mean Monthly Price"
                     ),
         
         ui.nav_panel("Table",
                     ui.output_data_frame("table"),
                     icon=icon_svg("table")
                     ),
+        title="Mean Rent Price"
     ),
     
     ui.h2("House Price Data by State", style="text-align: center;"),
@@ -54,13 +55,13 @@ app_ui = ui.page_sidebar(
         ui.nav_panel("Graph",
                      ui.output_plot("house_price"),
                      icon=icon_svg("chart-line"),
-                     title="Mean Number of Sales"
                      ),
         
         ui.nav_panel("Table",
                      ui.output_data_frame("house_price_data_frame"),
                      icon=icon_svg("table")
-                     )
+                     ),
+        title="Mean House Price"
     ),   
     
     ui.h2("House Sales Data by State", style="text-align: center;"),
@@ -69,25 +70,45 @@ app_ui = ui.page_sidebar(
         ui.nav_panel("Graph",
                      ui.output_plot("sale_count"),
                      icon=icon_svg("chart-line"),
-                     title="Mean Value"
                      ),
         
         ui.nav_panel("Table",
                      ui.output_data_frame("sale_count_data_frame"),
                      icon=icon_svg("table")
                      ),
+        title="Meane Sale Count"
     ),
     
-    # a column wrap of 3 cards
-    # current value of house
-    # percentage change over the last year
-    # number of sales in the last year
-    # ui.layout_column_wrap(
-    #     ui.value_box(),
-    #     ...
-    # )
-    # )
+    ui.layout_column_wrap(
+        ui.value_box(
+                "This month's average rent",
+                ui.output_text("current_rent"),
+                ui.output_text("rent_percent_change"),
+                showcase=icon_svg("dollar-sign"),
+                showcase_layout="bottom",
+                theme="text-green"
+            ),
+        
+        ui.value_box(
+            "This month's average house value",
+            ui.output_text("current_value"),
+            ui.output_text("house_value_percent_change"),
+            showcase=icon_svg("house"),
+            showcase_layout="bottom",
+            theme="text-green"
+        ),
+        
+        ui.value_box(
+            "Average amount of houses listed (per state)",
+            ui.output_text("current_count"),  
+            ui.output_text("sale_count_percent_change"),
+            showcase=icon_svg("coins"),
+            theme="text-green"
+        ),
+    )
+    )
 )
+    
 
 # Define the server logic
 def server(input, output, session):
@@ -222,6 +243,80 @@ def server(input, output, session):
             df = string_state_count_df[string_state_count_df["StateName"] == input.us_state()]
         
         return df
-
+    
+    @render.text
+    def current_rent():
+        if input.us_state() == "United States":
+            last_column = string_sale_price_df.columns[-1]
+            return "$" + str(string_sale_price_df[last_column].mean())
+        else:
+            filter_state = string_sale_price_df[string_sale_price_df["StateName"] == input.us_state()]
+            last_column = filter_state.columns[-1]
+            return "$" + str(filter_state[last_column].mean().round(2))
+        
+    @render.text
+    def current_value():
+        if input.us_state() == "United States":
+            last_column = string_house_price_df.columns[-1]
+            return "$" + str(string_house_price_df[last_column].mean())
+        else:
+            filter_state = string_house_price_df[string_house_price_df["StateName"] == input.us_state()]
+            last_column = filter_state.columns[-1]
+            return "$" + str(filter_state[last_column].mean().round(2))
+    
+    @render.text
+    def current_count():
+        if input.us_state() == "United States":
+            last_column = string_state_count_df.columns[-1]
+            return "$" + str(string_state_count_df[last_column].mean())
+        else:
+            filter_state = string_state_count_df[string_state_count_df["StateName"] == input.us_state()]
+            last_column = filter_state.columns[-1]
+            return f"{filter_state[last_column].mean().round(2)}"
+        
+    @render.text
+    def rent_percent_change():
+        if input.us_state() == "United States":
+            last_element = string_sale_price_df.iloc[-1, -1]
+            penultimate_element = string_sale_price_df.iloc[-2, -1]
+            print(last_element, penultimate_element)
+            return str(((last_element - penultimate_element) / penultimate_element).round(3))+ "%"
+        else:
+            filter_state = string_state_count_df[string_sale_price_df["StateName"] == input.us_state()]
+            last_element = filter_state.iloc[-1, -1]
+            penultimate_element = filter_state.iloc[-1, -2]
+            
+            return "Percent change in the last month: " + str(((last_element - penultimate_element) / penultimate_element).round(3))+ "%"
+        
+    
+    @render.text
+    def house_value_percent_change():
+        if input.us_state() == "United States":
+            last_element = string_house_price_df.iloc[-1, -1]
+            penultimate_element = string_house_price_df.iloc[-2, -1]
+            print(last_element, penultimate_element)
+            return " Percent change in the last month: " + str(((last_element - penultimate_element) / penultimate_element).round(3))+ "%"
+        else:
+            filter_state = string_house_price_df[string_house_price_df["StateName"] == input.us_state()]
+            last_element = filter_state.iloc[-1, -1]
+            penultimate_element = filter_state.iloc[-1, -2]
+            
+            return "Percent change in the last month: " + str(((last_element - penultimate_element) / penultimate_element).round(3))+ "%"
+    
+    
+    @render.text
+    def sale_count_percent_change():
+        if input.us_state() == "United States":
+            last_element = string_state_count_df.iloc[-1, -1]
+            penultimate_element = string_state_count_df.iloc[-2, -1]
+            print(last_element, penultimate_element)
+            return str(((last_element - penultimate_element) / penultimate_element).round(3))+ "%"
+        else:
+            last_element = string_state_count_df.iloc[-1, -1]
+            penultimate_element = string_state_count_df.iloc[-2, -1]
+            print(last_element, penultimate_element)
+            return "Percent change in the last month: " + str(((last_element - penultimate_element) / penultimate_element).round(3))+ "%"
+        
+        
 # Create and run the Shiny app
 app = App(app_ui, server)
